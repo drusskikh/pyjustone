@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import re
 import argparse
+import math
 
 import mididings
 from mididings import *
@@ -15,12 +16,12 @@ class ScalaParser(object):
         self.path = path
 
     @staticmethod
-    def _to_float(string):
+    def _to_cents(string):
         match = re.findall('[0-9]+', string)
         if len(match) != 2:
             raise FormatError
-        print match
-        # log (n/p) x 1200/log 2 
+        return  math.log(float(match[0]) /
+                     float(match[1])) * 1200 / math.log(2)
 
     def parse(self):
         f = open(self.path, 'r')
@@ -37,14 +38,19 @@ class ScalaParser(object):
         if int(lines[1]) != len(lines) - 2:
             raise FormatError
 
-        lines.pop(0)
-        lines.pop(0)
+        cents = [0.0]
+        lines = lines[2:]
         for element in lines:
             pos = re.search('[0-9./]+', element)
-            print [(pos.group())]
+            if re.search('/', pos.group()) != None:
+                cents.append(ScalaParser._to_cents(pos.group()))
+            else:
+                cents.append(float(pos.group()))
 
-        
-        ScalaParser._to_float("5/4")
+        if cents.pop() != 1200.0:
+            raise FormatError
+
+        return cents
 
 
 class Note(object):
@@ -60,7 +66,7 @@ class JusTone(object):
     polyphony = 4
     pitich_range = 500
     pitch = [100, 100, 50, 50, 100, 100, 50, 50, 100, 100, 50, 50]
-    notes= []
+    notes = []
 
     @staticmethod
     def find_note(note):
@@ -87,13 +93,13 @@ class JusTone(object):
                              JusTone.first_output_channel + JusTone.count, 0,
                              JusTone.pitch[note])
 
-                JusTone.notes.append(
-                 Note(event.note, JusTone.first_output_channel + JusTone.count))
+                JusTone.notes.append(Note(event.note,
+                               JusTone.first_output_channel + JusTone.count))
 
                 JusTone.count += 1
                 if JusTone.count >= JusTone.polyphony:
                     JusTone.count = 0
-                
+
                 evt.append(pitchbend)
                 evt.append(noteon)
                 return evt
@@ -103,7 +109,7 @@ class JusTone(object):
                 channel_list = JusTone.find_note(event.note)
                 for element in channel_list:
                     noteoff.append(mididings.event.MidiEvent(NOTEOFF, 1,
-                                                        element, event.note, 0))
+                                                       element, event.note, 0))
                 return noteoff
 
             return event
@@ -114,5 +120,4 @@ if __name__ == '__main__':
 #    JusTone.pitch = [20, 20, 30, 30, 20, 20, 30, 30, 20, 20, 30, 30]
 #    run(Process(JusTone.just_tone))
     parser = ScalaParser('12-19.scl')
-    parser.parse()
-
+    print parser.parse()

@@ -64,9 +64,13 @@ class JusTone(object):
     input_channel = 1
     first_output_channel = 1
     polyphony = 4
-    pitich_range = 500
+    #pitich_range = 500
     pitch = [100, 100, 50, 50, 100, 100, 50, 50, 100, 100, 50, 50]
     notes = []
+
+    @staticmethod
+    def cents_to_pitch(cents, pitch_range):
+        pass
 
     @staticmethod
     def find_note(note):
